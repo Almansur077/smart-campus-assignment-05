@@ -16,6 +16,7 @@ It only decides availability. It never creates or saves a booking.
   unit regression tests for the pure rule.
 - `tests/p10.input-parsing.regression.test.tsx` (P01-P04): decimal/exponent input must reach the whole-minute rule (risk R-01).
 - `RISK_REGISTER.md`: risk register. Update it (score, residual, evidence) with every risk-related change.
+- `docs/FEATURE_CONTRACT.md` (Practice #11): contract of the optional "Explain availability" feature. Follow it exactly.
 
 ## Constraints (do not break)
 - AC1: reject start >= end and past requests (start <= now).
@@ -25,9 +26,14 @@ It only decides availability. It never creates or saves a booking.
 - AC5: do not mutate booking data; repeated checks give the same answer.
 - AC6: keep clear desktop/mobile feedback: same messages, `role="status"` banner, same layout and Tailwind classes.
 - Exactly one fictional room (B-204). Do not add rooms or real people, schedules or room data.
-- No backend, login, database, external API or booking creation.
-- No secrets: never add, request, print or commit credentials, tokens or `.env` files.
-- No external deployments (GitHub Pages, Vercel, etc.) or publishing; local `npm run dev` / `npm run preview` only.
+- No login, database or booking creation.
+- Practice #11 exception: the only server code allowed is the `/api/explain` endpoint inside the Vite dev/preview
+  server, and the only external API allowed is an optional LLM provider called from that server.
+  The deterministic checker stays the source of truth; the LLM never decides availability or changes bookings.
+- No secrets: never add, request, print or commit credentials, tokens or `.env` files. API keys are read only from
+  the server process environment and must never reach the browser bundle (no `VITE_` keys).
+- Default to the mock adapter; label it clearly in the UI.
+- No external deployments by agents. Publishing (GitHub, Pages demo in mock mode) is done only by the human owner.
 - Work only on a separate branch or worktree. Never push, merge or deploy: a human reviews the diff and approves the merge.
 
 ## Engineering rules
@@ -37,18 +43,19 @@ It only decides availability. It never creates or saves a booking.
 - Adapter only if fixtures really have two data shapes. Strategy only if there are two real policies.
 - Keep the order of checks and every user-visible message text exactly the same.
 - Do not mutate booking fixtures; keep responsive UI feedback.
-- Do not add dependencies or features.
+- Do not add dependencies or features beyond the feature contract.
 
 ## Commands
 - Install: `npm install`
 - Tests: `npm test` (Vitest, verbose)
 - Type check: `npm run typecheck`
+- Lint: `npm run lint`
 - Build: `npm run build`
 - Dev preview: `npm run dev`
 
 ## Verification
 - Run existing tests before and after every change, and add focused regression tests.
 - Never delete or weaken an existing assertion.
-- Before proposing acceptance, run `npm test`, `npm run typecheck` and `npm run build` and confirm all pass.
+- Before proposing acceptance, run `npm test`, `npm run typecheck`, `npm run lint` and `npm run build` and confirm all pass.
   If any fail or were not run, say so; do not propose acceptance.
 - Report changed files, rationale and real test evidence (command, output, pass/fail count).
