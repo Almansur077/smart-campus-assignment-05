@@ -41,7 +41,7 @@ export type ExplainFacts = {
   isAvailable: boolean;
   reasonCode: ReasonCode;
   maxMinutes: number;
-  /** Only for TOO_LONG. */
+  /** Requested length in minutes, whenever end > start (both whole minutes). */
   durationMinutes?: number;
   /** Only for OVERLAP: the one conflicting booking interval. */
   conflict?: TimeRange;

@@ -23,7 +23,10 @@ export function buildFacts(room: RoomState, start: number | null, end: number | 
     reasonCode: detail.reasonCode,
     maxMinutes: MAX_MINUTES,
   };
-  if (detail.reasonCode === 'TOO_LONG' && start !== null && end !== null) facts.durationMinutes = end - start;
+  // The requested length is a fact of the request (not of other bookings); models naturally mention it ("60 minutes").
+  if (start !== null && end !== null && Number.isInteger(start) && Number.isInteger(end) && end > start) {
+    facts.durationMinutes = end - start;
+  }
   if (detail.reasonCode === 'OVERLAP' && detail.conflict) {
     facts.conflict = {
       start: detail.conflict.start,
