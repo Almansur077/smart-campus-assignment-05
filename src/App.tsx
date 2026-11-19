@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
   CalendarClock,
   CircleCheck,
@@ -7,9 +7,27 @@ import {
   DoorClosed,
   Info,
   ShieldAlert,
+  Sparkles,
 } from 'lucide-react';
-import { checkAvailability, formatTime, MAX_MINUTES, type Result, type RoomState } from './domain/availability';
+import {
+  evaluateAvailability,
+  formatTime,
+  MAX_MINUTES,
+  type DetailedResult,
+  type Result,
+  type RoomState,
+} from './domain/availability';
 import { DEMO_ROOM } from './data/demoRoom';
+import { requestExplanation } from './explain/client';
+import { MAX_QUESTION_LENGTH, type ExplainResponse } from './explain/types';
+
+type Checked = { start: number | null; end: number | null; blocked: boolean; detail: DetailedResult };
+
+const SOURCE_BADGE = {
+  mock: { label: 'Mock', className: 'bg-amber-100 text-amber-900 ring-amber-300' },
+  llm: { label: 'LLM', className: 'bg-indigo-100 text-indigo-900 ring-indigo-300' },
+  fallback: { label: 'Fallback', className: 'bg-slate-200 text-slate-800 ring-slate-300' },
+} as const;
 
 function validateRequired(start: string, end: string): { field: 'start' | 'end'; message: string } | null {
   if (start.trim() === '') return { field: 'start', message: 'Start is required.' };
@@ -39,19 +57,46 @@ export default function App() {
   const [endText, setEndText] = useState('720');
   const [blocked, setBlocked] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  // Practice #11 (optional explanation). The checker result above stays the only source of truth.
+  const [checked, setChecked] = useState<Checked | null>(null);
+  const [question, setQuestion] = useState('');
+  const [explanation, setExplanation] = useState<ExplainResponse | null>(null);
+  const [explaining, setExplaining] = useState(false);
+  const explainRequestId = useRef(0);
+
+  function clearExplanation() {
+    explainRequestId.current += 1; // ignore any answer still in flight
+    setExplanation(null);
+    setExplaining(false);
+  }
+
+  async function handleExplain() {
+    if (!checked) return;
+    const id = ++explainRequestId.current;
+    setExplaining(true);
+    setExplanation(null);
+    const response = await requestExplanation({ room, ...checked, question });
+    if (id !== explainRequestId.current) return;
+    setExplanation(response);
+    setExplaining(false);
+  }
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    clearExplanation();
     const missing = validateRequired(startText, endText);
     if (missing) {
       setResult({ available: false, message: missing.message });
+      setChecked(null);
       return;
     }
     const parsedStart = Number(startText);
     const parsedEnd = Number(endText);
     const start = Number.isNaN(parsedStart) ? null : parsedStart;
     const end = Number.isNaN(parsedEnd) ? null : parsedEnd;
-    setResult(checkAvailability({ ...room, blocked }, start, end));
+    const detail = evaluateAvailability({ ...room, blocked }, start, end);
+    setResult({ available: detail.available, message: detail.message });
+    setChecked({ start, end, blocked, detail });
   }
 
   const bookingList = room.bookings
@@ -97,7 +142,10 @@ export default function App() {
                 min={0}
                 max={1440}
                 value={startText}
-                onChange={(e) => setStartText(e.target.value)}
+                onChange={(e) => {
+                  setStartText(e.target.value);
+                  clearExplanation();
+                }}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/40"
               />
             </div>
@@ -113,7 +161,10 @@ export default function App() {
                 min={0}
                 max={1440}
                 value={endText}
-                onChange={(e) => setEndText(e.target.value)}
+                onChange={(e) => {
+                  setEndText(e.target.value);
+                  clearExplanation();
+                }}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/40"
               />
             </div>
@@ -128,7 +179,10 @@ export default function App() {
             <input
               type="checkbox"
               checked={blocked}
-              onChange={(e) => setBlocked(e.target.checked)}
+              onChange={(e) => {
+                setBlocked(e.target.checked);
+                clearExplanation();
+              }}
               className="h-4 w-4 rounded border-slate-400 text-teal-600 focus:ring-2 focus:ring-teal-600/50"
             />
             Room blocked (demo)
@@ -166,6 +220,58 @@ export default function App() {
             </div>
           )}
         </form>
+
+        {checked && (
+          <section aria-label="Explain availability" className="mt-6 space-y-3 rounded-2xl bg-white p-5 text-slate-900 shadow-xl sm:p-6">
+            <div>
+              <label htmlFor="explain-question" className="mb-1 block text-sm font-semibold text-slate-800">
+                Question (optional, max {MAX_QUESTION_LENGTH} characters)
+              </label>
+              <input
+                id="explain-question"
+                name="explain-question"
+                type="text"
+                maxLength={MAX_QUESTION_LENGTH}
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/40"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleExplain}
+              disabled={explaining}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-teal-600 bg-white px-4 py-3 text-base font-semibold text-teal-700 transition hover:bg-teal-50 focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 disabled:opacity-60"
+            >
+              <Sparkles className="h-4 w-4" />
+              {explaining ? 'Explaining…' : 'Explain availability'}
+            </button>
+
+            {explanation && (
+              <div
+                data-testid="explanation-panel"
+                className="rounded-xl border border-dashed border-slate-400 bg-slate-50 p-4 text-slate-800"
+              >
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    AI-generated explanation - not a booking decision
+                  </div>
+                  <span
+                    data-testid="explanation-source"
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${SOURCE_BADGE[explanation.source].className}`}
+                  >
+                    {SOURCE_BADGE[explanation.source].label}
+                  </span>
+                </div>
+                <p className="text-sm">{explanation.explanation}</p>
+                {explanation.source === 'mock' && (
+                  <p className="mt-2 text-xs text-slate-600">Mock adapter: fixed demo text, no AI model was called.</p>
+                )}
+                {explanation.notice && <p className="mt-2 text-xs text-slate-600">{explanation.notice}</p>}
+              </div>
+            )}
+          </section>
+        )}
 
         <footer className="mt-6 flex items-center justify-center gap-2 text-center text-xs text-slate-400">
           <ShieldAlert className="h-3.5 w-3.5" />

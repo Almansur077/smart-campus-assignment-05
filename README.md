@@ -22,8 +22,22 @@ The full report, raw agent logs, command outputs and screenshots are submitted s
 ## Run
 ```bash
 npm ci
-npm test            # 36 tests: U01-U13 UI, D01-D09/F01/X01 domain, R01-R08 regression, P01-P04 Practice #10
+npm test            # 153 tests: 36 from Practice #10 (U01-U13, D01-D09/F01/X01, R01-R08, P01-P04) + 117 for Practice #11
 npm run typecheck
 npm run build
 npm audit           # known residual: tinypool / esbuild / @vitest/mocker (dev tooling only, see R-02)
 ```
+
+## Optional "Explain availability" (Practice #11)
+The deterministic checker decides; the explanation is a separate, labeled panel and never changes the status.
+Contract: `docs/FEATURE_CONTRACT.md`. Server environment variables only (never `VITE_`, never committed):
+
+```
+EXPLAIN_PROVIDER=mock|anthropic|claude-cli   # default mock (free, no network)
+ANTHROPIC_API_KEY=...                        # only for anthropic; read by the server process
+EXPLAIN_MODEL=claude-haiku-5-5               # anthropic default; optional --model for claude-cli
+EXPLAIN_TIMEOUT_MS=4000                      # 100..30000
+```
+
+`npm run dev` / `npm run preview` serve `POST /api/explain`. Static demo without a server:
+`VITE_EXPLAIN_TRANSPORT=browser-mock npm run build` (the mock adapter runs in the browser, labeled "Mock").
