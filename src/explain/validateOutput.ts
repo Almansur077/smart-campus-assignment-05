@@ -18,6 +18,22 @@ const SAYS_AVAILABLE =
   /\b(available|can be booked|you can book|is free|is open|is bookable|go ahead)\b/i;
 const NEGATED_AVAILABLE = /\b(unavailable|not available|isn't available|not currently available)\b/gi;
 
+// Fix F-01 (agent review): a word list of what must NOT be said is not enough. The text must also positively state
+// the checker's decision, and must never claim a booking exists for the student (the app never creates bookings).
+const STATES_AVAILABLE = /\b(available|is free|can be booked)\b/i;
+const STATES_UNAVAILABLE =
+  /\b(unavailable|not available|isn't available|cannot|can't|can not|blocked|overlap\w*|conflict\w*|too long|exceed\w*|longer than|limit|passed|earlier|not later|before|not valid|invalid|must)\b/i;
+// For an AVAILABLE result any "it is booked/taken" claim is a contradiction. For any result, a confirmation addressed to
+// the student is false. ("already booked from 10:00 to 11:00" stays allowed for OVERLAP: that booking really exists.)
+const SAYS_TAKEN = /\b(is booked|been booked|already booked|is taken|occupied|reserved)\b/i;
+const CLAIMS_CONFIRMATION = /\b(confirm\w*|yours|booked for you|reserved for you|booking is complete)\b/i;
+// "couldn't be confirmed" / "is not confirmed" deny a booking, so they agree with an unavailable result.
+const NEGATED_CONFIRMATION = /\b(couldn't|could not|cannot|can't|can not|isn't|is not|wasn't|was not|not)\s+(be\s+)?confirm\w*/gi;
+// Fix F-02 (agent review): invented details written as words cannot be checked against the facts.
+const PERSON_TITLE = /\b(prof|professor|dr|doctor|mr|mrs|ms|mx|sir|madam|teacher|lecturer)\b\.?/i;
+const WORD_DURATION =
+  /\b(an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|sixty|ninety|half an?|a couple of|several|few)\s+(hours?|minutes?|mins?)\b/i;
+
 function allowedNumbers(facts: ExplainFacts): Set<string> {
   const values = [0, DAY_MINUTES, facts.maxMinutes, facts.now.minutes];
   const { start, end } = facts.request;
@@ -48,13 +64,20 @@ export function validateExplanation(raw: unknown, facts: ExplainFacts): OutputCh
   if (countSentences(text) > 2) return { ok: false, reason: 'more than two sentences' };
 
   // Status agreement with the deterministic checker.
+  if (CLAIMS_CONFIRMATION.test(text.replace(NEGATED_CONFIRMATION, ' '))) return { ok: false, reason: 'claims a booking confirmation' };
   if (facts.isAvailable) {
-    if (SAYS_UNAVAILABLE.test(text)) return { ok: false, reason: 'contradicts available status' };
+    if (SAYS_UNAVAILABLE.test(text) || SAYS_TAKEN.test(text)) return { ok: false, reason: 'contradicts available status' };
+    if (!STATES_AVAILABLE.test(text)) return { ok: false, reason: 'does not state the available status' };
   } else {
     if (SAYS_AVAILABLE.test(text.replace(NEGATED_AVAILABLE, ' '))) {
       return { ok: false, reason: 'contradicts unavailable status' };
     }
+    if (!STATES_UNAVAILABLE.test(text)) return { ok: false, reason: 'does not state why the room is unavailable' };
   }
+
+  // No invented people or durations written in words (F-02).
+  if (PERSON_TITLE.test(text)) return { ok: false, reason: 'mentions a person' };
+  if (WORD_DURATION.test(text)) return { ok: false, reason: 'duration written in words' };
 
   // No invented facts: rooms, clock times, numbers.
   for (const room of text.match(ROOM_LIKE) ?? []) {

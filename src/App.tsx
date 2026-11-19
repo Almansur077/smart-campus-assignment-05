@@ -234,8 +234,12 @@ export default function App() {
                 maxLength={MAX_QUESTION_LENGTH}
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
+                aria-describedby="explain-question-hint"
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-base text-slate-900 outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-600/40"
               />
+              <p id="explain-question-hint" className="mt-1 text-xs text-slate-500">
+                Do not enter personal information. E-mails, phone and ID numbers are removed before any AI call.
+              </p>
             </div>
             <button
               type="button"

@@ -15,7 +15,7 @@ export function fallbackExplanation(facts: ExplainFacts): string {
     case 'OUT_OF_DAY':
       return 'The requested times must stay within one day, from 0 to 1440 minutes.';
     case 'SAME_TIME':
-      return `Start and end are the same time (${request.startText}), so the request has no length.`;
+      return `Start and end are the same time (${request.startText}), so the request has no length and cannot be checked.`;
     case 'REVERSED':
       return `The end time ${request.endText} is earlier than the start time ${request.startText}, so the interval is not valid.`;
     case 'PAST_TIME':
