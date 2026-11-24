@@ -34,6 +34,19 @@ const PERSON_TITLE = /\b(prof|professor|dr|doctor|mr|mrs|ms|mx|sir|madam|teacher
 const WORD_DURATION =
   /\b(an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|sixty|ninety|half an?|a couple of|several|few)\s+(hours?|minutes?|mins?)\b/i;
 
+// Assignment #05 mitigation A05-R01 (AI review C-01): an unavailable text must not name a specific reason that the
+// checker did not report. Each phrase group belongs to exactly one reason code; other codes may not use it.
+const REASON_PHRASES: readonly { code: ExplainFacts['reasonCode']; pattern: RegExp }[] = [
+  { code: 'ROOM_BLOCKED', pattern: /\bblocked\b/i },
+  { code: 'OVERLAP', pattern: /\b(overlap\w*|conflict\w*|clash\w*|already booked)\b/i },
+  { code: 'TOO_LONG', pattern: /\b(too long|longer than|exceed\w*)\b/i },
+  { code: 'PAST_TIME', pattern: /\b(in the past|already passed|has passed|is over)\b/i },
+];
+
+function namesWrongReason(text: string, facts: ExplainFacts): boolean {
+  return REASON_PHRASES.some(({ code, pattern }) => code !== facts.reasonCode && pattern.test(text));
+}
+
 function allowedNumbers(facts: ExplainFacts): Set<string> {
   const values = [0, DAY_MINUTES, facts.maxMinutes, facts.now.minutes];
   const { start, end } = facts.request;
@@ -73,6 +86,7 @@ export function validateExplanation(raw: unknown, facts: ExplainFacts): OutputCh
       return { ok: false, reason: 'contradicts unavailable status' };
     }
     if (!STATES_UNAVAILABLE.test(text)) return { ok: false, reason: 'does not state why the room is unavailable' };
+    if (namesWrongReason(text, facts)) return { ok: false, reason: 'gives a reason the checker did not report' };
   }
 
   // No invented people or durations written in words (F-02).
