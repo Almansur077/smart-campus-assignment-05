@@ -18,6 +18,7 @@ import {
   type RoomState,
 } from './domain/availability';
 import { DEMO_ROOM } from './data/demoRoom';
+import { parseRequest } from './domain/parseInput';
 import { requestExplanation } from './explain/client';
 import { MAX_QUESTION_LENGTH, type ExplainResponse } from './explain/types';
 
@@ -28,12 +29,6 @@ const SOURCE_BADGE = {
   llm: { label: 'LLM', className: 'bg-indigo-100 text-indigo-900 ring-indigo-300' },
   fallback: { label: 'Fallback', className: 'bg-slate-200 text-slate-800 ring-slate-300' },
 } as const;
-
-function validateRequired(start: string, end: string): { field: 'start' | 'end'; message: string } | null {
-  if (start.trim() === '') return { field: 'start', message: 'Start is required.' };
-  if (end.trim() === '') return { field: 'end', message: 'End is required.' };
-  return null;
-}
 
 function InfoRow({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
@@ -84,16 +79,13 @@ export default function App() {
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     clearExplanation();
-    const missing = validateRequired(startText, endText);
-    if (missing) {
-      setResult({ available: false, message: missing.message });
+    const parsed = parseRequest(startText, endText);
+    if (!parsed.ok) {
+      setResult({ available: false, message: parsed.message });
       setChecked(null);
       return;
     }
-    const parsedStart = Number(startText);
-    const parsedEnd = Number(endText);
-    const start = Number.isNaN(parsedStart) ? null : parsedStart;
-    const end = Number.isNaN(parsedEnd) ? null : parsedEnd;
+    const { start, end } = parsed;
     const detail = evaluateAvailability({ ...room, blocked }, start, end);
     setResult({ available: detail.available, message: detail.message });
     setChecked({ start, end, blocked, detail });

@@ -15,7 +15,8 @@ LLM (default: a labeled mock) to explain the decision; the deterministic checker
 |---|---|---|
 | `src/domain/availability.ts` | Pure booking rule `evaluateAvailability` / `checkAvailability`, `formatTime` | No React, no I/O, never mutates inputs |
 | `src/data/demoRoom.ts` | Demo fixture (now = 540, one booking 600-660) | Read-only |
-| `src/App.tsx` | React UI: state, rendering, required-field check, input parsing, calls domain and explain client | Keep business rules in `src/domain/` |
+| `src/domain/parseInput.ts` | Pure form-input parsing (required fields, text -> number) | No React; keep messages identical |
+| `src/App.tsx` | React UI: state, rendering, calls domain and explain client | No business rules here |
 | `src/explain/` | Browser-safe explain feature: validation, facts, prompt, output validator, fallback, service, client, mock adapter | Must not import `server/` or `node:*` |
 | `server/` | Server-only: `POST /api/explain` middleware (Vite dev/preview), adapters (anthropic, claude-cli), env config | Keys only from `process.env`; never imported by `src/` |
 | `tests/`, `src/**/*.test.ts`, `server/**/*.test.ts` | Vitest + Testing Library tests | Never delete or weaken an assertion |
