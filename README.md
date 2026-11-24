@@ -38,7 +38,7 @@ npm run dev        # http://localhost:5173, mock explain provider
 | `eae60c6` | 02 | AGENTS.md rewrite, CLAUDE.md import, acceptance criteria, `npm run check`, `engines` and `.nvmrc` |
 | `d4536e8` | 03 | Parsing moved from `App.tsx` into the pure `src/domain/parseInput.ts` (+5 tests; no GoF pattern needed) |
 | `61cd38e` | 07 | Mitigation 1 (A05-R01): the output validator rejects a wrong reason (+6 tests) |
-| next commit | 07 | Mitigation 2 (A05-R02): GitHub Actions CI and rule guards |
+| `8ba4948` | 07 | Mitigation 2 (A05-R02): GitHub Actions CI and rule guards |
 
 ## History: Practice #11 README
 
