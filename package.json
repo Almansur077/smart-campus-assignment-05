@@ -13,7 +13,8 @@
     "test": "vitest run --reporter=verbose",
     "preview": "vite preview",
     "lint": "eslint .",
-    "check": "npm run typecheck && npm run lint && npm test && npm run build"
+    "check": "npm run typecheck && npm run lint && npm test && npm run build",
+    "guards": "bash scripts/ci-guards.sh"
   },
   "dependencies": {
     "lucide-react": "0.446.0",

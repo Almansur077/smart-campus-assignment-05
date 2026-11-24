@@ -1,4 +1,46 @@
-# Smart Campus room availability: Practice #11
+# Smart Campus room availability: Assignment #05
+
+**Student:** Almansur Baidildanov, 24B031671 · **Course:** AI-Driven Software Engineering (KBTU)
+**Assignment #05:** AI-assisted repository customization, agent readiness and software risk governance
+**AI assistant:** Claude Code CLI 2.1.330 (Opus 5.5 for the read-only risk review, Claude in the CLI as a pair-programming assistant). Every finding was checked by me.
+
+A small React + Vite + TypeScript app. It checks whether one fictional room (B-204) is available for a time range and never creates a booking. An optional "Explain availability" button calls an LLM through a server endpoint; a labeled mock is the default. The deterministic checker is always the source of truth.
+
+* **Baseline:** tag `a05-baseline` (commit `5612c5b`, the final Practice #11 code). Branch `main` = baseline, branch `assignment-05` = final.
+* [`AGENTS.md`](AGENTS.md) contains the agent instructions: purpose, architecture, setup, safe, ask-first and forbidden commands, conventions and review gates. `CLAUDE.md` imports it so that Claude Code loads it automatically.
+* [`docs/ACCEPTANCE_CRITERIA.md`](docs/ACCEPTANCE_CRITERIA.md) lists AC-1 to AC-5, the criteria that must stay true.
+* [`RISK_REGISTER.md`](RISK_REGISTER.md) has 11 evaluated findings (A05-R01 to A05-R11) and two mitigations.
+* [`.github/workflows/ci.yml`](.github/workflows/ci.yml) and [`scripts/ci-guards.sh`](scripts/ci-guards.sh) enforce the review gate.
+
+## Repository map
+| Part | Files |
+|---|---|
+| Entry points | `index.html` → `src/main.tsx` → `src/App.tsx`; server endpoint `server/explainPlugin.ts` (Vite dev/preview middleware) |
+| Domain (pure) | `src/domain/availability.ts` (rule), `src/domain/parseInput.ts` (form parsing), `src/data/demoRoom.ts` (fixture) |
+| Explain feature | `src/explain/*` (browser-safe), `server/*` (server-only adapters: mock, anthropic, claude-cli) |
+| Tests (Vitest + Testing Library, jsdom) | `src/**/*.test.ts`, `tests/*.test.ts(x)`, `server/*.test.ts`: 10 files, 174 tests |
+| Build and config | `vite.config.ts`, `tsconfig.json` (strict), `eslint.config.js`, `tailwind.config.js`, `postcss.config.js` |
+| Dependencies | 3 runtime (react, react-dom, lucide-react), 17 dev; all exact versions; `package-lock.json` |
+
+## Run
+```bash
+nvm use            # Node 20+ (.nvmrc); tested locally on Node 25.6.1, CI on 20 and 22
+npm ci
+npm run check      # typecheck + lint + 174 tests + build
+npm run guards     # AGENTS.md rule guards (after build)
+npm run dev        # http://localhost:5173, mock explain provider
+```
+
+## Assignment #05 commits
+| Commit | Task | Change |
+|---|---|---|
+| `5612c5b` (`a05-baseline`) | baseline | Practice #11 final code: 163/163 tests, typecheck, lint and build pass |
+| `eae60c6` | 02 | AGENTS.md rewrite, CLAUDE.md import, acceptance criteria, `npm run check`, `engines` and `.nvmrc` |
+| `d4536e8` | 03 | Parsing moved from `App.tsx` into the pure `src/domain/parseInput.ts` (+5 tests; no GoF pattern needed) |
+| `61cd38e` | 07 | Mitigation 1 (A05-R01): the output validator rejects a wrong reason (+6 tests) |
+| next commit | 07 | Mitigation 2 (A05-R02): GitHub Actions CI and rule guards |
+
+## History: Practice #11 README
 
 **Student:** Almansur Baidildanov, 24B031671 · Thursday 13:00–16:00
 **Course:** AI-Driven Software Engineering (KBTU). Practice #11: *Engineering LLM-enabled applications: build a small AI-enabled feature*

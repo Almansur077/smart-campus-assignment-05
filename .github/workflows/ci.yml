@@ -1,0 +1,25 @@
+# Assignment #05 mitigation A05-R02: the AGENTS.md review gate, enforced on every push and pull request.
+name: ci
+on:
+  push:
+    branches: ['**']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run check          # typecheck + lint + test + build
+      - run: bash scripts/ci-guards.sh
+      - run: npm audit --omit=dev --audit-level=high   # runtime dependencies only; dev advisories tracked in RISK_REGISTER.md

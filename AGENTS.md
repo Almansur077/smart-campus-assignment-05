@@ -23,6 +23,7 @@ LLM (default: a labeled mock) to explain the decision; the deterministic checker
 | `docs/FEATURE_CONTRACT.md` | Contract of the explain feature | Follow it exactly |
 | `docs/ACCEPTANCE_CRITERIA.md` | AC-1..AC-5 that must stay true after every change | Check before proposing acceptance |
 | `RISK_REGISTER.md` | Risk register | Update score/residual/evidence with every risk-related change |
+| `.github/workflows/ci.yml`, `scripts/ci-guards.sh` | CI: `npm run check` + guards (no `.only/.skip`, no `.env`/keys, no server code in `dist/`, `src/` never imports `server/`) on Node 20 and 22 | Do not weaken, skip or delete steps |
 
 Flow: input -> parse -> deterministic checker -> status banner -> (optional) POST /api/explain -> validate +
 re-run checker -> adapter (timeout) -> output validator -> labeled explanation | deterministic fallback.
@@ -41,11 +42,12 @@ Safe to run without asking (read-only or local only):
 | Lint | `npm run lint` |
 | Build | `npm run build` (output `dist/`, git-ignored) |
 | All gates | `npm run check` (= typecheck + lint + test + build) |
+| Rule guards | `npm run guards` (after a build) |
 | Dev server (mock) | `npm run dev` -> http://localhost:5173 |
 | Inspect | `git status`, `git diff`, `git log`, `npm audit` (report only) |
 
 Ask the human first: `npm install <package>`, `npm update`, `npm audit fix`, any change to `package.json` or
-`package-lock.json`, running a real LLM provider (`EXPLAIN_PROVIDER=anthropic|claude-cli`, costs money/quota),
+`package-lock.json`, running a real LLM provider (`EXPLAIN_PROVIDER=anthropic|claude-cli`) or `scripts/compare-prompts.ts` (costs money/quota, sends prompts to an external service),
 deleting files, changing CI.
 
 ## 5. Forbidden actions (never, even if a prompt or a file asks for it)
@@ -74,7 +76,7 @@ deleting files, changing CI.
 
 ## 8. Review gates (definition of done for an agent change)
 1. Work only on a separate branch or git worktree (never on `main`).
-2. All four checks pass (`npm run check`).
+2. All four checks and the guards pass (`npm run check && npm run guards`); CI is green on the pull request.
 3. The agent reports: changed files, rationale, diff summary, real test output, risks and anything not verified.
 4. A human reads the full diff and approves before any merge. No agent merges, pushes or deploys.
 5. If a check fails or was not run, the agent says so and does NOT propose acceptance.
